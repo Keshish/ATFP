@@ -63,6 +63,11 @@ class Data {
                 obj2.vel_x >> t >> obj2.vel_y >> t >> obj3.vel_x >> t >> obj3.vel_y >> t >> obj4.vel_x >> t >>
                 obj4.vel_y >> t >> yaw >> t >> timestamp;
 
+            objects.push_back(std::vector<Object>{obj1, obj2, obj3, obj4});
+            timestamps.push_back(timestamp);
+            yaws.push_back(yaw);
+            speeds.push_back(speed);
+
 //            std::cout.precision(12);
 //            std::cout << row_id << " " << obj1.x << " " << obj1.y << " " << obj2.x << " " << obj2.y << " " << obj3.x
 //                      << " " << obj3.y << " " << obj4.x << " " << obj4.y << " " << speed << " " << obj1.vel_x << " "

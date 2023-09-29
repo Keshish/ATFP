@@ -86,8 +86,6 @@ class Display {
         init();
 
         auto data = &Data::data();
-
-        std::cout << data->objects[0][0];
         size_t tick = 0;
 
         /// Render loop
@@ -112,40 +110,29 @@ class Display {
             textureShader->setMat4("view", view);
 
             /** WORK FROM HERE **/
+            glm::mat4 model = glm::translate(glm::mat4(1.0f),
+                                             glm::vec3(0.0f, 0.0f, 0.0f));
+
+            // render black rect
+            colorShader->use();
+            colorShader->setVec4("customColor", colorCyanBlue);
+            colorShader->setMat4("model", model);
+            rect->render();
 
             // move rect
             for (const auto& object : data->objects[tick]) {
-                std::cout << object;
-//                glm::mat4 model = glm::translate(glm::mat4(1.0f),
-//                                                 glm::vec3(0.0f, 0.0f, 0.0f));
-//
-////                float(object.x) / 10.0f, float(object.y) / 10.0f
-//
-//                // render black rect
-//                colorShader->use();
-//                colorShader->setVec4("customColor", colorBlack);
-//                colorShader->setMat4("model", model);
-//                rect->render();
+                glm::mat4 model = glm::translate(glm::mat4(1.0f),
+                                                 glm::vec3(float(object.x) / 5000.0f, float(object.y) / 5000.0f, 0.0f));
 
-//                // render inner rect
-//                model = glm::scale(model, glm::vec3(0.95f, 0.95f, 0.0f));
-//                colorShader->use();
-//                colorShader->setMat4("model", model);
-//                colorShader->setVec4("customColor", colorCyanBlue);
-//                rect->render();
-//
-//                // add texture
-//                auto texture = getTexture("PALM");
-//                if (texture) {
-//                    model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));
-//                    model = glm::scale(model, glm::vec3(1.5f, 1.5f, 0.0f));
-//                    textureShader->use();
-//                    textureShader->setMat4("model", model);
-//                    texture->bind();
-//                    rect->render();
-//                }
+                // render black rect
+                colorShader->use();
+                colorShader->setVec4("customColor", colorBlack);
+                colorShader->setMat4("model", model);
+                rect->render();
             }
 
+            std::this_thread::sleep_for(std::chrono::microseconds(40000));
+            tick = (tick + 1) % data->timestamps.size();
             /** UNTIL HERE **/
 
             glfwSwapBuffers(window);
