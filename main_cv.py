@@ -1,8 +1,7 @@
 import csv
-import sys
 import cv2
 import numpy as np
-
+import math
 
 def parse_csv_data(file_path):
     data = []
@@ -21,14 +20,20 @@ def init_kalman_filter():
     return kf
 
 
-def draw_objects(image, objects, shift=(250, 250), scale=3):
-    #print(objects)
+def draw_objects(image, vehicle_info, objects_info, shift=(250, 250), scale=3):
     font = cv2.FONT_HERSHEY_SIMPLEX
     font_scale = 0.3
     font_thickness = 1
 
-    for i, obj in enumerate(objects):
-        #print(obj)
+    # Draw vehicle
+    vehicle_x, vehicle_y = int(vehicle_info["position"][0] * scale + shift[0]), int(vehicle_info["position"][1] * scale + shift[1])
+    cv2.circle(image, (vehicle_x, vehicle_y), 5, (255, 0, 0), -1)
+    vehicle_speed = vehicle_info["speed"]
+    vehicle_text = f"Vehicle Speed: {vehicle_speed:.2f}"
+    cv2.putText(image, vehicle_text, (vehicle_x - 50, vehicle_y - 30), font, font_scale, (255, 255, 255), font_thickness, cv2.LINE_AA)
+
+    # Draw objects
+    for i, obj in enumerate(objects_info):
         x, y = int(obj["position"][0] * scale + shift[0]), int(obj["position"][1] * scale + shift[1])
         cv2.circle(image, (x, y), 5, (0, 255, 0), -1)
 
@@ -45,6 +50,10 @@ def draw_objects(image, objects, shift=(250, 250), scale=3):
 def main():
     data = parse_csv_data("DevelopmentData_modded.csv")
     kf = init_kalman_filter()
+
+    prev_timestamp = None
+    prev_vehicle_speed = 0
+    vehicle_position = np.array([0, 0], dtype=np.float32)
 
     for row in data:
         objects_info = [
@@ -63,10 +72,34 @@ def main():
             {
                 "position": (row[f"FourthObjectDistance_X"], row[f"FourthObjectDistance_Y"]),
                 "speed": (row[f"FourthObjectSpeed_X"], row[f"FourthObjectSpeed_Y"])
-            },
+            }
         ]
 
-        objects_info = [obj for obj in objects_info if obj["position"][0] != 0 and obj["position"][1] != 0]
+        # Filter objects based on a threshold distance
+        threshold_distance = 100
+        objects_info = [obj for obj in objects_info if obj["position"][0] != 0 and obj["position"][1] != 0 and np.sqrt(float(obj["position"][0])**2 + float(obj["position"][1])**2) < threshold_distance]
+
+        # Calculate vehicle speed
+        timestamp = float(row["Timestamp"])
+        yaw_rate = float(row["YawRate"])
+        vehicle_speed = 0
+        #print(f"Timestamp: {timestamp:.2f} Vehicle speed: {vehicle_speed:.2f} m/s Yaw rate: {yaw_rate:.2f} rad/s")
+        if prev_timestamp is not None:
+            dt = timestamp - prev_timestamp
+            vehicle_speed = (vehicle_speed - prev_vehicle_speed) / dt
+            print(f"Vehicle speed: {vehicle_speed:.2f} m/s")
+            d_theta = yaw_rate * dt
+            dx = vehicle_speed * math.cos(d_theta) * dt
+            dy = vehicle_speed * math.sin(d_theta) * dt
+            vehicle_position += np.array([dx, dy], dtype=np.float32)
+            print(f"Vehicle position: {vehicle_position}")
+        prev_timestamp = timestamp
+        prev_vehicle_speed = vehicle_speed
+
+        vehicle_info = {
+            "position": tuple(vehicle_position),
+            "speed": vehicle_speed
+        }
 
         image = np.zeros((1000, 1000, 3), dtype=np.uint8)
 
@@ -79,7 +112,7 @@ def main():
                 "speed": obj["speed"]
             })
 
-        draw_objects(image, filtered_positions)
+        draw_objects(image, vehicle_info, filtered_positions)
         cv2.imshow("Objects", image)
         cv2.waitKey(100)
 
