@@ -37,6 +37,7 @@ class Display {
     std::unique_ptr<Shader> textureShader{};
 
     // meshes
+    float rect_size = 0.03;
     std::unique_ptr<RectMesh> rect{};
 
     // colors
@@ -44,6 +45,11 @@ class Display {
     glm::vec4 colorLightGray{0.3f, 0.3f, 0.3f, 1.0f};
     glm::vec4 colorWaterBlue{0.0f, 0.7f, 0.9f, 1.0f};
     glm::vec4 colorCyanBlue{rgbaToSingle(glm::vec4{56, 183, 190, 1})};
+    std::vector<glm::vec4> objectColors{rgbaToSingle(glm::vec4{38, 70, 83, 1}),      // shit green
+                                        rgbaToSingle(glm::vec4{244, 162, 97, 1}),    // orange
+                                        rgbaToSingle(glm::vec4{231, 111, 81, 1}),    // bloody mary
+                                        rgbaToSingle(glm::vec4{162, 210, 255, 1})};  // baby blue
+    glm::vec4 colorGrassGreen{rgbaToSingle(glm::vec4{0.0f, 135.0f, 62.0f, 1.0f})};
 
     // textures
     std::unordered_map<std::string, std::shared_ptr<Texture>> textures{};
@@ -93,7 +99,7 @@ class Display {
             int width{}, height{};
             glfwGetWindowSize(window, &width, &height);
 
-            glClearColor(colorLightGray.x, colorLightGray.y, colorLightGray.z, colorLightGray.w);
+            glClearColor(colorGrassGreen.x, colorGrassGreen.y, colorGrassGreen.z, colorGrassGreen.w);
             glClear(GL_COLOR_BUFFER_BIT);
 
             updateCameraPos();
@@ -110,28 +116,43 @@ class Display {
             textureShader->setMat4("view", view);
 
             /** WORK FROM HERE **/
-            glm::mat4 model = glm::translate(glm::mat4(1.0f),
-                                             glm::vec3(0.0f, 0.0f, 0.0f));
+            std::shared_ptr<Texture> texture{};
+            glm::mat4 model{};
 
-            // render black rect
-            colorShader->use();
-            colorShader->setVec4("customColor", colorCyanBlue);
-            colorShader->setMat4("model", model);
+            texture = getTexture("ARROW");
+            model = glm::rotate(glm::mat4(1.0f), float(data->yaws[tick]), glm::vec3(0.0f, 0.0f, 1.0f));
+            model = glm::scale(model, glm::vec3(data->speeds[tick] / 200, 1.0f, 0.0f));
+            model = glm::translate(model, glm::vec3(rect_size, 0.0f, 0.0f));
+            textureShader->use();
+            textureShader->setMat4("model", model);
+            texture->bind();
+            rect->render();
+
+            texture = getTexture("CAR");
+            model = glm::scale(glm::mat4(1.0f), glm::vec3(4.0f, 2.0f, 0.0f));
+            model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));
+            textureShader->use();
+            textureShader->setMat4("model", model);
+            texture->bind();
             rect->render();
 
             // move rect
+            size_t i = 0;
             for (const auto& object : data->objects[tick]) {
-                glm::mat4 model = glm::translate(glm::mat4(1.0f),
-                                                 glm::vec3(float(object.x) / 5000.0f, float(object.y) / 5000.0f, 0.0f));
+                if (object.x == 0 && object.y == 0)
+                    continue;
+                model = glm::rotate(glm::mat4(1.0f), float(-data->yaws[tick]), glm::vec3(0.0f, 0.0f, 1.0f));
+                model = glm::translate(model, glm::vec3(float(object.x) / 5000.0f, float(object.y) / 5000.0f, 0.0f));
 
                 // render black rect
                 colorShader->use();
-                colorShader->setVec4("customColor", colorBlack);
+                colorShader->setVec4("customColor", objectColors[i]);
                 colorShader->setMat4("model", model);
                 rect->render();
+                i++;
             }
 
-            std::this_thread::sleep_for(std::chrono::microseconds(40000));
+            std::this_thread::sleep_for(std::chrono::microseconds(20000));
             tick = (tick + 1) % data->timestamps.size();
             /** UNTIL HERE **/
 
@@ -244,7 +265,7 @@ class Display {
 
         // let the range of sensors be 50 m
         // 1 / 50 = 0.02 is 1 m
-        rect = std::make_unique<RectMesh>(Point{0.03, 0.03});  // set object size
+        rect = std::make_unique<RectMesh>(Point{rect_size, rect_size});  // set object size
     }
 
     void initCamera() {
@@ -318,6 +339,12 @@ class Display {
     void loadTexture(const std::string& id) {
         if (id == "PALM") {
             textures[id] = {std::make_shared<Texture>("../assets/sprites/palm.png")};
+        } else if (id == "ARROW") {
+            textures[id] = {std::make_shared<Texture>("../assets/sprites/arrow.png")};
+        } else if (id == "CAR") {
+            textures[id] = {std::make_shared<Texture>("../assets/sprites/car.png")};
+        } else if (id == "ROAD") {
+            textures[id] = {std::make_shared<Texture>("../assets/sprites/road.jpg")};
         } else {
             std::cerr << "Invalid id " + id + "\n";
             exit(1);
@@ -328,10 +355,6 @@ class Display {
         if (textures.find(id) == textures.end()) {
             loadTexture(id);
         }
-        if (id == "PALM") {
-            return textures.at(id);
-        } else {
-            return nullptr;
-        }
+        return textures.at(id);
     }
 };
