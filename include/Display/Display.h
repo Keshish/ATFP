@@ -7,11 +7,11 @@
 
 #include "stb/stb_image.h"
 
+#include "Camera.h"
+#include "Mesh.h"
+#include "Projection.h"
 #include "Shader.h"
 #include "Texture.h"
-#include "Mesh.h"
-#include "Camera.h"
-#include "Projection.h"
 
 #include <memory>
 #include <mutex>
@@ -20,10 +20,12 @@
 #include <utility>
 #include <vector>
 
+#include "Data.h"
+
 class Display {
-private:
+ private:
     // window
-    GLFWwindow *window{nullptr};
+    GLFWwindow* window{nullptr};
     const std::string windowName{"CodeLikeABosch"};
 
     // view
@@ -65,16 +67,16 @@ private:
 
     std::mutex mtx{};
 
-public:
-    explicit Display(const Display &) = delete;
+ public:
+    explicit Display(const Display&) = delete;
 
-    Display &operator=(const Display &) = delete;
+    Display& operator=(const Display&) = delete;
 
-    explicit Display(Display &&) = delete;
+    explicit Display(Display&&) = delete;
 
-    Display &operator=(Display &&) = delete;
+    Display& operator=(Display&&) = delete;
 
-    static Display &display() {
+    static Display& display() {
         static Display instance;
         return instance;
     }
@@ -82,6 +84,11 @@ public:
     void run() {
         std::lock_guard locker(mtx);
         init();
+
+        auto data = &Data::data();
+
+        std::cout << data->objects[0][0];
+        size_t tick = 0;
 
         /// Render loop
         while (!glfwWindowShouldClose(window)) {
@@ -107,33 +114,36 @@ public:
             /** WORK FROM HERE **/
 
             // move rect
+            for (const auto& object : data->objects[tick]) {
+                std::cout << object;
+//                glm::mat4 model = glm::translate(glm::mat4(1.0f),
+//                                                 glm::vec3(0.0f, 0.0f, 0.0f));
+//
+////                float(object.x) / 10.0f, float(object.y) / 10.0f
+//
+//                // render black rect
+//                colorShader->use();
+//                colorShader->setVec4("customColor", colorBlack);
+//                colorShader->setMat4("model", model);
+//                rect->render();
 
-            for (int i = 0; i < 5; i++) {
-                glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, float(i) / 10.0f, 0.0f));
-
-                // render black rect
-                colorShader->use();
-                colorShader->setVec4("customColor", colorBlack);
-                colorShader->setMat4("model", model);
-                rect->render();
-
-                // render inner rect
-                model = glm::scale(model, glm::vec3(0.95f, 0.95f, 0.0f));
-                colorShader->use();
-                colorShader->setMat4("model", model);
-                colorShader->setVec4("customColor", colorCyanBlue);
-                rect->render();
-
-                // add texture
-                auto texture = getTexture("PALM");
-                if (texture) {
-                    model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));
-                    model = glm::scale(model, glm::vec3(1.5f, 1.5f, 0.0f));
-                    textureShader->use();
-                    textureShader->setMat4("model", model);
-                    texture->bind();
-                    rect->render();
-                }
+//                // render inner rect
+//                model = glm::scale(model, glm::vec3(0.95f, 0.95f, 0.0f));
+//                colorShader->use();
+//                colorShader->setMat4("model", model);
+//                colorShader->setVec4("customColor", colorCyanBlue);
+//                rect->render();
+//
+//                // add texture
+//                auto texture = getTexture("PALM");
+//                if (texture) {
+//                    model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));
+//                    model = glm::scale(model, glm::vec3(1.5f, 1.5f, 0.0f));
+//                    textureShader->use();
+//                    textureShader->setMat4("model", model);
+//                    texture->bind();
+//                    rect->render();
+//                }
             }
 
             /** UNTIL HERE **/
@@ -144,13 +154,13 @@ public:
         glfwDestroyWindow(window);
     }
 
-private:
-    static inline void framebufferSizeCallback(GLFWwindow *window, int width, int height) {
+ private:
+    static inline void framebufferSizeCallback(GLFWwindow* window, int width, int height) {
         glfwMakeContextCurrent(window);
         glViewport(0, 0, width, height);
     }
 
-    static inline void scrollCallback(GLFWwindow *window, double xoffset, double yoffset) {
+    static inline void scrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
         std::ignore = window;
         std::ignore = xoffset;
 
@@ -160,7 +170,7 @@ private:
         }
     }
 
-    static inline void mouseButtonCallback(GLFWwindow *window, int button, int action, int mods) {
+    static inline void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
         std::ignore = mods;
 
         if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
@@ -176,7 +186,7 @@ private:
         }
     }
 
-    static inline void cursorEnterCallback(GLFWwindow *window, int entered) {
+    static inline void cursorEnterCallback(GLFWwindow* window, int entered) {
         std::ignore = window;
         if (!entered) {
             if (isMouseBtnRightPressed) {
@@ -200,7 +210,7 @@ private:
     }
 
     void initWindow() {
-        GLFWmonitor *primaryMonitor = glfwGetPrimaryMonitor();
+        GLFWmonitor* primaryMonitor = glfwGetPrimaryMonitor();
         if (!primaryMonitor) {
             std::cout << "Could not get primary monitor.\n";
             exit(EXIT_FAILURE);
@@ -247,7 +257,7 @@ private:
 
         // let the range of sensors be 50 m
         // 1 / 50 = 0.02 is 1 m
-        rect = std::make_unique<RectMesh>(Point{0.03, 0.03}); // set object size
+        rect = std::make_unique<RectMesh>(Point{0.03, 0.03});  // set object size
     }
 
     void initCamera() {
@@ -278,7 +288,7 @@ private:
         return {deltaX, deltaY};
     }
 
-    void updateViewPos(glm::mat4 *view) {
+    void updateViewPos(glm::mat4* view) {
         if (isMouseBtnRightPressed && glfwGetWindowAttrib(window, GLFW_HOVERED)) {
             auto [deltaX, deltaY] = getTranslations();
             *view = glm::translate(*view, glm::vec3(deltaX, deltaY, 0.0f));
@@ -304,7 +314,7 @@ private:
         }
     }
 
-    void updateViewZoom(glm::mat4 *view) {
+    void updateViewZoom(glm::mat4* view) {
         if (scrollOffsetYChanged && glfwGetWindowAttrib(window, GLFW_HOVERED) &&
             projection->type == ProjectionType::ORTHO) {
             scale -= static_cast<float>(scrollOffsetY) / 10;
@@ -318,7 +328,7 @@ private:
         *view = glm::scale(*view, glm::vec3(scale, scale, scale));
     }
 
-    void loadTexture(const std::string &id) {
+    void loadTexture(const std::string& id) {
         if (id == "PALM") {
             textures[id] = {std::make_shared<Texture>("../assets/sprites/palm.png")};
         } else {
@@ -327,7 +337,7 @@ private:
         }
     }
 
-    std::shared_ptr<Texture> getTexture(const std::string &id) {
+    std::shared_ptr<Texture> getTexture(const std::string& id) {
         if (textures.find(id) == textures.end()) {
             loadTexture(id);
         }
