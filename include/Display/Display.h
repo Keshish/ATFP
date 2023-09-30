@@ -129,7 +129,8 @@ class Display {
             rect->render();
 
             texture = getTexture("CAR");
-            model = glm::scale(glm::mat4(1.0f), glm::vec3(4.0f, 2.0f, 0.0f));
+            model = glm::rotate(glm::mat4(1.0f), float(data->yaws[tick]), glm::vec3(0.0f, 0.0f, 1.0f));
+            model = glm::scale(model, glm::vec3(4.0f, 2.0f, 0.0f));
             model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));
             textureShader->use();
             textureShader->setMat4("model", model);
@@ -141,10 +142,25 @@ class Display {
             for (const auto& object : data->objects[tick]) {
                 if (object.x == 0 && object.y == 0)
                     continue;
+
+                double length = sqrt(pow(object.vel_x, 2) + pow(object.vel_y, 2));
+                double vel_dir = acos(object.vel_x / length);
+
+                texture = getTexture("ARROW");
+                model = glm::mat4(1.0f);
+                model = glm::rotate(model, float(-data->yaws[tick]), glm::vec3(0.0f, 0.0f, 1.0f));
+                model = glm::translate(model, glm::vec3(float(object.x) / 5000.0f, float(object.y) / 5000.0f, 0.0f));
+                model = glm::rotate(model, float(vel_dir), glm::vec3(0.0f, 0.0f, 1.0f));
+                model = glm::scale(model, glm::vec3(length/400, 1.0f, 0.0f));
+                model = glm::translate(model, glm::vec3(rect_size, 0.0f, 0.0f));
+
+                textureShader->use();
+                textureShader->setMat4("model", model);
+                texture->bind();
+                rect->render();
+
                 model = glm::rotate(glm::mat4(1.0f), float(-data->yaws[tick]), glm::vec3(0.0f, 0.0f, 1.0f));
                 model = glm::translate(model, glm::vec3(float(object.x) / 5000.0f, float(object.y) / 5000.0f, 0.0f));
-
-                // render black rect
                 colorShader->use();
                 colorShader->setVec4("customColor", objectColors[i]);
                 colorShader->setMat4("model", model);
