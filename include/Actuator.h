@@ -20,8 +20,6 @@ class Actuator {
             }
         }
 
-        std::cout << mat << "\n";
-
         double minDist, maxValue;
         cv::Point minLoc, maxLoc;
         cv::minMaxLoc(mat.col(0), &minDist, &maxValue, &minLoc, &maxLoc);
