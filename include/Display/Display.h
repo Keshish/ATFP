@@ -1,10 +1,10 @@
 #pragma once
 
+#include "glm/ext.hpp"
+#include "glm/gtx/string_cast.hpp"
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
-#include "glm/ext.hpp"
-#include "glm/gtx/string_cast.hpp"
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "stb/stb_image.h"
@@ -22,8 +22,8 @@
 #include <utility>
 #include <vector>
 
-#include "Data.h"
 #include "Actuator.h"
+#include "Data.h"
 
 class Display {
  private:
@@ -48,10 +48,14 @@ class Display {
     glm::vec4 colorLightGray{0.3f, 0.3f, 0.3f, 1.0f};
     glm::vec4 colorWaterBlue{0.0f, 0.7f, 0.9f, 1.0f};
     glm::vec4 colorCyanBlue{rgbaToSingle(glm::vec4{56, 183, 190, 1})};
-    std::vector<glm::vec4> objectColors{rgbaToSingle(glm::vec4{38, 70, 83, 1}),      // shit green
-                                        rgbaToSingle(glm::vec4{244, 162, 97, 1}),    // orange
-                                        rgbaToSingle(glm::vec4{231, 111, 81, 1}),    // bloody mary
-                                        rgbaToSingle(glm::vec4{162, 210, 255, 1})};  // baby blue
+    std::vector<glm::vec4> objectColors{rgbaToSingle(glm::vec4{38, 70, 83, 1}),               // shit green
+                                        rgbaToSingle(glm::vec4{244, 162, 97, 1}),             // orange
+                                        rgbaToSingle(glm::vec4{231, 111, 81, 1}),             // bloody mary
+                                        rgbaToSingle(glm::vec4{162, 210, 255, 1})};           // baby blue
+    std::vector<glm::vec4> objectColorsOpacity{rgbaToSingle(glm::vec4{38, 70, 83, 0.3}),      // shit green
+                                               rgbaToSingle(glm::vec4{244, 162, 97, 0.3}),    // orange
+                                               rgbaToSingle(glm::vec4{231, 111, 81, 0.3}),    // bloody mary
+                                               rgbaToSingle(glm::vec4{162, 210, 255, 0.3})};  // baby blue
     glm::vec4 colorGrassGreen{rgbaToSingle(glm::vec4{0.0f, 135.0f, 62.0f, 1.0f})};
 
     // textures
@@ -121,8 +125,7 @@ class Display {
             textureShader->setMat4("view", view);
 
             /** WORK FROM HERE **/
-            // make decision
-            auto decision = act.run(tick);
+            std::vector<std::vector<float>> mat{};
 
             // render
             std::shared_ptr<Texture> texture{};
@@ -137,6 +140,7 @@ class Display {
             texture->bind();
             rect->render();
 
+            model[3] = glm::vec4 {0, 0, 0, 1};
             auto angleVec1 = glm::vec4{1, 0, 0, 0};
             angleVec1 = angleVec1 * model;
 
@@ -149,7 +153,7 @@ class Display {
             texture->bind();
             rect->render();
 
-            // move rect
+            // render objects
             size_t i = 0;
             for (const auto& object : data->objects[tick]) {
                 if (object.x == 0 && object.y == 0)
@@ -166,23 +170,35 @@ class Display {
                 model = glm::rotate(model, float(-data->yaws[tick]), glm::vec3(0.0f, 0.0f, 1.0f));
                 model = glm::translate(model, glm::vec3(float(object.x) / 5000.0f, float(object.y) / 5000.0f, 0.0f));
                 model = glm::rotate(model, float(vel_dir), glm::vec3(0.0f, 0.0f, 1.0f));
-                model = glm::scale(model, glm::vec3(float(length)/400.0f, 1.0f, 0.0f));
+                model = glm::scale(model, glm::vec3(float(length) / 400.0f, 1.0f, 0.0f));
                 model = glm::translate(model, glm::vec3(float(rect_size), 0.0f, 0.0f));
                 textureShader->use();
                 textureShader->setMat4("model", model);
                 texture->bind();
                 rect->render();
 
-                std::cout << glm::to_string(model) << "\n";
-                if (glm::isnan(model[0][0])) {
-                    exit(1);
-                }
-//                auto angleVec2 = glm::vec4{1, 0, 0, 0};
-//                angleVec2 = angleVec2 * model;
-//                std::cout << glm::to_string(angleVec2) << "\n";
+                model[3] = glm::vec4 {0, 0, 0, 1};
+                auto angleVec2 = glm::vec4{1, 0, 0, 0};
+                angleVec2 = angleVec2 * model;
 
-//                auto angle = acos(glm::dot(angleVec1, angleVec2) / (glm::length(angleVec1) * glm::length(angleVec2)));
-//                std::cout << angle << "\n";
+                float dist = sqrt(pow(object.x, 2) + pow(object.y, 2));
+
+                if (glm::length(angleVec1) == 0 || glm::length(angleVec2) == 0) {
+                    mat.push_back(std::vector<float>{dist, 0});
+
+                    model = glm::rotate(glm::mat4(1.0f), float(-data->yaws[tick]), glm::vec3(0.0f, 0.0f, 1.0f));
+                    model = glm::translate(model, glm::vec3(float(object.x) / 5000.0f, float(object.y) / 5000.0f, 0.0f));
+                    colorShader->use();
+                    colorShader->setVec4("customColor", objectColorsOpacity[i]);
+                    colorShader->setMat4("model", model);
+                    rect->render();
+                    continue;
+                }
+
+                float angle = acos(glm::dot(angleVec1, angleVec2) / (glm::length(angleVec1) * glm::length(angleVec2)));
+//                std::cout << 90 - abs(glm::degrees(angle) - 180) << "\n";
+
+                mat.push_back(std::vector<float>{dist, angle});
 
                 model = glm::rotate(glm::mat4(1.0f), float(-data->yaws[tick]), glm::vec3(0.0f, 0.0f, 1.0f));
                 model = glm::translate(model, glm::vec3(float(object.x) / 5000.0f, float(object.y) / 5000.0f, 0.0f));
@@ -193,7 +209,11 @@ class Display {
                 i++;
             }
 
-            std::this_thread::sleep_for(std::chrono::microseconds(100));
+            // make decision
+
+            auto decision = act.run(tick);
+
+            std::this_thread::sleep_for(std::chrono::microseconds(30000));
             tick = (tick + 1) % data->timestamps.size();
             /** UNTIL HERE **/
 
