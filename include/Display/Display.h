@@ -97,20 +97,26 @@ class Display {
         std::lock_guard locker(mtx);
         init();
 
+        const double targetFrameTime = 1.0 / 60.0;  // Target frame rate (e.g., 60 FPS)
+        double lastFrameTime = glfwGetTime();
+
         auto data = &Data::data();
         size_t tick = 0;
 
         Actuator act;
-
         float yaw = 0;
 
         /// Render loop
         while (!glfwWindowShouldClose(window)) {
+            double currentTime = glfwGetTime();
+            double deltaTime = currentTime - lastFrameTime;
+            lastFrameTime = currentTime;
+
             int width{}, height{};
             glfwGetWindowSize(window, &width, &height);
 
             glClearColor(colorLightGray.x, colorLightGray.y, colorLightGray.z, colorLightGray.w);
-//            glClearColor(colorGrassGreen.x, colorGrassGreen.y, colorGrassGreen.z, colorGrassGreen.w);
+            //            glClearColor(colorGrassGreen.x, colorGrassGreen.y, colorGrassGreen.z, colorGrassGreen.w);
             glClear(GL_COLOR_BUFFER_BIT);
 
             updateCameraPos();
@@ -214,7 +220,7 @@ class Display {
 
             int worstCase = act.run(mat);
 
-            int dist_thresh = 1000;
+            int dist_thresh = 2000;
             if (abs(yaw) > 0.3 && mat[worstCase][0] < dist_thresh) {
                 std::cout << "CPTA situation\n";
             } else if (mat[worstCase][1] < 5 && mat[worstCase][0] < dist_thresh) {
@@ -241,12 +247,18 @@ class Display {
                 rect->render();
             }
 
-            std::this_thread::sleep_for(std::chrono::microseconds(1000));
             tick = (tick + 1) % data->timestamps.size();
             if (tick == 0) {
                 yaw = 0;
             }
             /** UNTIL HERE **/
+
+            // Frame timing to limit frame rate
+            double frameTime = glfwGetTime() - currentTime;
+            if (frameTime < targetFrameTime) {
+                double sleepTime = targetFrameTime - frameTime;
+                std::this_thread::sleep_for(std::chrono::microseconds(static_cast<long long>(sleepTime * 1e6)));
+            }
 
             glfwSwapBuffers(window);
             glfwPollEvents();
