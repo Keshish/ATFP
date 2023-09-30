@@ -49,10 +49,10 @@ class Display {
     glm::vec4 colorWaterBlue{0.0f, 0.7f, 0.9f, 1.0f};
     glm::vec4 colorRed{1.0f, 0.0f, 0.0f, 1.0f};
     glm::vec4 colorCyanBlue{rgbaToSingle(glm::vec4{56, 183, 190, 1})};
-    std::vector<glm::vec4> objectColors{rgbaToSingle(glm::vec4{38, 70, 83, 1}),               // shit green
-                                        rgbaToSingle(glm::vec4{244, 162, 97, 1}),             // orange
-                                        rgbaToSingle(glm::vec4{231, 111, 81, 1}),             // bloody mary
-                                        rgbaToSingle(glm::vec4{162, 210, 255, 1})};           // baby blue
+    std::vector<glm::vec4> objectColors{rgbaToSingle(glm::vec4{38, 70, 83, 1}),      // shit green
+                                        rgbaToSingle(glm::vec4{244, 162, 97, 1}),    // orange
+                                        rgbaToSingle(glm::vec4{231, 111, 81, 1}),    // bloody mary
+                                        rgbaToSingle(glm::vec4{162, 210, 255, 1})};  // baby blue
 
     glm::vec4 colorGrassGreen{rgbaToSingle(glm::vec4{0.0f, 135.0f, 62.0f, 1.0f})};
 
@@ -192,7 +192,10 @@ class Display {
             }
 
             // filter
-            auto worstCase = act.run(mat);
+            //            int worstCase = -1;
+            //            if (!mat.empty()) {
+            int worstCase = act.run(mat);
+            //            }
 
             for (size_t i = 0; i < data->objects[tick].size(); i++) {
                 auto& object = data->objects[tick][i];
