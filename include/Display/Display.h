@@ -45,7 +45,7 @@ class Display {
 
     // colors
     glm::vec4 colorBlack{0.0f, 0.0f, 0.0f, 0.5f};
-    glm::vec4 colorLightGray{0.3f, 0.3f, 0.3f, 1.0f};
+    glm::vec4 colorLightGray{0.8f, 0.8f, 0.8f, 1.0f};
     glm::vec4 colorWaterBlue{0.0f, 0.7f, 0.9f, 1.0f};
     glm::vec4 colorRed{1.0f, 0.0f, 0.0f, 1.0f};
     glm::vec4 colorYellow{1.0f, 1.0f, 0.0f, 1.0f};
@@ -109,7 +109,8 @@ class Display {
             int width{}, height{};
             glfwGetWindowSize(window, &width, &height);
 
-            glClearColor(colorGrassGreen.x, colorGrassGreen.y, colorGrassGreen.z, colorGrassGreen.w);
+            glClearColor(colorLightGray.x, colorLightGray.y, colorLightGray.z, colorLightGray.w);
+//            glClearColor(colorGrassGreen.x, colorGrassGreen.y, colorGrassGreen.z, colorGrassGreen.w);
             glClear(GL_COLOR_BUFFER_BIT);
 
             updateCameraPos();
@@ -212,6 +213,15 @@ class Display {
             }
 
             int worstCase = act.run(mat);
+
+            int dist_thresh = 1000;
+            if (abs(yaw) > 0.3 && mat[worstCase][0] < dist_thresh) {
+                std::cout << "CPTA situation\n";
+            } else if (mat[worstCase][1] < 5 && mat[worstCase][0] < dist_thresh) {
+                std::cout << "CPLA situation\n";
+            } else if (mat[worstCase][1] < 85 && mat[worstCase][0] < dist_thresh) {
+                std::cout << "CPNCO situation\n";
+            }
 
             for (size_t i = 0; i < data->objects[tick].size(); i++) {
                 auto& object = data->objects[tick][i];
