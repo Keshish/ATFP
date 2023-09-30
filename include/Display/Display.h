@@ -45,9 +45,10 @@ class Display {
 
     // colors
     glm::vec4 colorBlack{0.0f, 0.0f, 0.0f, 0.5f};
-    glm::vec4 colorLightGray{0.3f, 0.3f, 0.3f, 1.0f};
+    glm::vec4 colorLightGray{0.8f, 0.8f, 0.8f, 1.0f};
     glm::vec4 colorWaterBlue{0.0f, 0.7f, 0.9f, 1.0f};
     glm::vec4 colorRed{1.0f, 0.0f, 0.0f, 1.0f};
+    glm::vec4 colorYellow{1.0f, 1.0f, 0.0f, 1.0f};
     glm::vec4 colorCyanBlue{rgbaToSingle(glm::vec4{56, 183, 190, 1})};
     std::vector<glm::vec4> objectColors{rgbaToSingle(glm::vec4{38, 70, 83, 1}),      // shit green
                                         rgbaToSingle(glm::vec4{244, 162, 97, 1}),    // orange
@@ -96,17 +97,27 @@ class Display {
         std::lock_guard locker(mtx);
         init();
 
+        // Target frame rate (e.g., 60 FPS)
+        const double targetFrameTime = 1.0 / 60.0;
+        double lastFrameTime = glfwGetTime();
+
         auto data = &Data::data();
         size_t tick = 0;
 
         Actuator act;
+        float yaw = 0;
 
         /// Render loop
         while (!glfwWindowShouldClose(window)) {
+            double currentTime = glfwGetTime();
+            double deltaTime = currentTime - lastFrameTime;
+            lastFrameTime = currentTime;
+
             int width{}, height{};
             glfwGetWindowSize(window, &width, &height);
 
-            glClearColor(colorGrassGreen.x, colorGrassGreen.y, colorGrassGreen.z, colorGrassGreen.w);
+            glClearColor(colorLightGray.x, colorLightGray.y, colorLightGray.z, colorLightGray.w);
+            //            glClearColor(colorGrassGreen.x, colorGrassGreen.y, colorGrassGreen.z, colorGrassGreen.w);
             glClear(GL_COLOR_BUFFER_BIT);
 
             updateCameraPos();
@@ -125,12 +136,29 @@ class Display {
             /** WORK FROM HERE **/
             std::vector<std::vector<float>> mat{};
 
+            if (tick > 0) {
+                yaw = yaw + data->yaws[tick - 1] * (data->timestamps[tick] - data->timestamps[tick - 1]);
+            }
+
             // render
             std::shared_ptr<Texture> texture{};
             glm::mat4 model{};
 
+            model = glm::mat4(1.0f);
+            model = glm::scale(model, glm::vec3(1.0f, 2.0f, 0.0f));
+            for (int i = 0; i < 10; i++) {
+                model = glm::rotate(model,
+                                    float(data->yaws[tick - 1] * (data->timestamps[tick] - data->timestamps[tick - 1])),
+                                    glm::vec3(0.0f, 0.0f, 1.0f));
+                model = glm::translate(model, glm::vec3(rect_size, 0.0f, 0.0f));
+                colorShader->use();
+                colorShader->setVec4("customColor", colorYellow);
+                colorShader->setMat4("model", model);
+                rect->render();
+            }
+
             texture = getTexture("ARROW");
-            model = glm::rotate(glm::mat4(1.0f), float(data->yaws[tick]), glm::vec3(0.0f, 0.0f, 1.0f));
+            model = glm::mat4(1.0f);
             model = glm::scale(model, glm::vec3(data->speeds[tick] / 200.0f, 1.0f, 0.0f));
             model = glm::translate(model, glm::vec3(rect_size, 0.0f, 0.0f));
             textureShader->use();
@@ -143,7 +171,7 @@ class Display {
             angleVec1 = angleVec1 * model;
 
             texture = getTexture("CAR");
-            model = glm::rotate(glm::mat4(1.0f), float(data->yaws[tick]), glm::vec3(0.0f, 0.0f, 1.0f));
+            model = glm::mat4(1.0f);
             model = glm::scale(model, glm::vec3(4.0f, 2.0f, 0.0f));
             model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));
             textureShader->use();
@@ -165,7 +193,7 @@ class Display {
 
                 texture = getTexture("ARROW");
                 model = glm::mat4(1.0f);
-                model = glm::rotate(model, float(-data->yaws[tick]), glm::vec3(0.0f, 0.0f, 1.0f));
+                model = glm::rotate(model, float(-yaw), glm::vec3(0.0f, 0.0f, 1.0f));
                 model = glm::translate(model, glm::vec3(float(object.x) / 5000.0f, float(object.y) / 5000.0f, 0.0f));
                 model = glm::rotate(model, float(vel_dir), glm::vec3(0.0f, 0.0f, 1.0f));
                 model = glm::scale(model, glm::vec3(float(length) / 400.0f, 1.0f, 0.0f));
@@ -191,11 +219,16 @@ class Display {
                 mat.push_back(std::vector<float>{dist, angle});
             }
 
-            // filter
-            //            int worstCase = -1;
-            //            if (!mat.empty()) {
             int worstCase = act.run(mat);
-            //            }
+
+            int dist_thresh = 2000;
+            if (abs(yaw) > 0.3 && mat[worstCase][0] < dist_thresh) {
+                std::cout << "CPTA situation\n";
+            } else if (mat[worstCase][1] < 5 && mat[worstCase][0] < dist_thresh) {
+                std::cout << "CPLA situation\n";
+            } else if (mat[worstCase][1] < 85 && mat[worstCase][0] < dist_thresh) {
+                std::cout << "CPNCO situation\n";
+            }
 
             for (size_t i = 0; i < data->objects[tick].size(); i++) {
                 auto& object = data->objects[tick][i];
@@ -203,7 +236,7 @@ class Display {
                 if (object.x == 0 && object.y == 0)
                     continue;
 
-                model = glm::rotate(glm::mat4(1.0f), float(-data->yaws[tick]), glm::vec3(0.0f, 0.0f, 1.0f));
+                model = glm::rotate(glm::mat4(1.0f), float(-yaw), glm::vec3(0.0f, 0.0f, 1.0f));
                 model = glm::translate(model, glm::vec3(float(object.x) / 5000.0f, float(object.y) / 5000.0f, 0.0f));
                 colorShader->use();
                 if (i == worstCase) {
@@ -215,9 +248,18 @@ class Display {
                 rect->render();
             }
 
-            std::this_thread::sleep_for(std::chrono::microseconds(30000));
             tick = (tick + 1) % data->timestamps.size();
+            if (tick == 0) {
+                yaw = 0;
+            }
             /** UNTIL HERE **/
+
+            // Frame timing to limit frame rate
+            double frameTime = glfwGetTime() - currentTime;
+            if (frameTime < targetFrameTime) {
+                double sleepTime = targetFrameTime - frameTime;
+                std::this_thread::sleep_for(std::chrono::microseconds(static_cast<long long>(sleepTime * 1e6)));
+            }
 
             glfwSwapBuffers(window);
             glfwPollEvents();

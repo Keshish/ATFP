@@ -20,8 +20,6 @@ class Actuator {
             }
         }
 
-        std::cout << mat << "\n";
-
         double minDist, maxValue;
         cv::Point minLoc, maxLoc;
         cv::minMaxLoc(mat.col(0), &minDist, &maxValue, &minLoc, &maxLoc);
@@ -40,7 +38,7 @@ class Actuator {
             }
         }
 
-        cv::Mat weights(2, 1, CV_32F, {0.5, 0.5});
+        cv::Mat weights(2, 1, CV_32F, {0.75, 0.25});
 
         for (int i = 0; i < mat.rows; i++) {
             mat.at<float>(i, 0) *= weights.at<float>(0);  // Multiply the first column
