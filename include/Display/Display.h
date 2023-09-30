@@ -44,18 +44,16 @@ class Display {
     std::unique_ptr<RectMesh> rect{};
 
     // colors
-    glm::vec4 colorBlack{0.0f, 0.0f, 0.0f, 1.0f};
+    glm::vec4 colorBlack{0.0f, 0.0f, 0.0f, 0.5f};
     glm::vec4 colorLightGray{0.3f, 0.3f, 0.3f, 1.0f};
     glm::vec4 colorWaterBlue{0.0f, 0.7f, 0.9f, 1.0f};
+    glm::vec4 colorRed{1.0f, 0.0f, 0.0f, 1.0f};
     glm::vec4 colorCyanBlue{rgbaToSingle(glm::vec4{56, 183, 190, 1})};
     std::vector<glm::vec4> objectColors{rgbaToSingle(glm::vec4{38, 70, 83, 1}),               // shit green
                                         rgbaToSingle(glm::vec4{244, 162, 97, 1}),             // orange
                                         rgbaToSingle(glm::vec4{231, 111, 81, 1}),             // bloody mary
                                         rgbaToSingle(glm::vec4{162, 210, 255, 1})};           // baby blue
-    std::vector<glm::vec4> objectColorsOpacity{rgbaToSingle(glm::vec4{38, 70, 83, 0.3}),      // shit green
-                                               rgbaToSingle(glm::vec4{244, 162, 97, 0.3}),    // orange
-                                               rgbaToSingle(glm::vec4{231, 111, 81, 0.3}),    // bloody mary
-                                               rgbaToSingle(glm::vec4{162, 210, 255, 0.3})};  // baby blue
+
     glm::vec4 colorGrassGreen{rgbaToSingle(glm::vec4{0.0f, 135.0f, 62.0f, 1.0f})};
 
     // textures
@@ -140,7 +138,7 @@ class Display {
             texture->bind();
             rect->render();
 
-            model[3] = glm::vec4 {0, 0, 0, 1};
+            model[3] = glm::vec4{0, 0, 0, 1};
             auto angleVec1 = glm::vec4{1, 0, 0, 0};
             angleVec1 = angleVec1 * model;
 
@@ -153,9 +151,9 @@ class Display {
             texture->bind();
             rect->render();
 
-            // render objects
-            size_t i = 0;
-            for (const auto& object : data->objects[tick]) {
+            for (size_t i = 0; i < data->objects[tick].size(); i++) {
+                auto& object = data->objects[tick][i];
+
                 if (object.x == 0 && object.y == 0)
                     continue;
 
@@ -177,7 +175,7 @@ class Display {
                 texture->bind();
                 rect->render();
 
-                model[3] = glm::vec4 {0, 0, 0, 1};
+                model[3] = glm::vec4{0, 0, 0, 1};
                 auto angleVec2 = glm::vec4{1, 0, 0, 0};
                 angleVec2 = angleVec2 * model;
 
@@ -185,33 +183,34 @@ class Display {
 
                 if (glm::length(angleVec1) == 0 || glm::length(angleVec2) == 0) {
                     mat.push_back(std::vector<float>{dist, 0});
-
-                    model = glm::rotate(glm::mat4(1.0f), float(-data->yaws[tick]), glm::vec3(0.0f, 0.0f, 1.0f));
-                    model = glm::translate(model, glm::vec3(float(object.x) / 5000.0f, float(object.y) / 5000.0f, 0.0f));
-                    colorShader->use();
-                    colorShader->setVec4("customColor", objectColorsOpacity[i]);
-                    colorShader->setMat4("model", model);
-                    rect->render();
                     continue;
                 }
 
                 float angle = acos(glm::dot(angleVec1, angleVec2) / (glm::length(angleVec1) * glm::length(angleVec2)));
-//                std::cout << 90 - abs(glm::degrees(angle) - 180) << "\n";
-
+                angle = float(int(abs(glm::degrees(angle) - 180)) % 90);
                 mat.push_back(std::vector<float>{dist, angle});
+            }
+
+            // filter
+            auto worstCase = act.run(mat);
+
+            for (size_t i = 0; i < data->objects[tick].size(); i++) {
+                auto& object = data->objects[tick][i];
+
+                if (object.x == 0 && object.y == 0)
+                    continue;
 
                 model = glm::rotate(glm::mat4(1.0f), float(-data->yaws[tick]), glm::vec3(0.0f, 0.0f, 1.0f));
                 model = glm::translate(model, glm::vec3(float(object.x) / 5000.0f, float(object.y) / 5000.0f, 0.0f));
                 colorShader->use();
-                colorShader->setVec4("customColor", objectColors[i]);
+                if (i == worstCase) {
+                    colorShader->setVec4("customColor", colorRed);
+                } else {
+                    colorShader->setVec4("customColor", colorBlack);
+                }
                 colorShader->setMat4("model", model);
                 rect->render();
-                i++;
             }
-
-            // make decision
-
-            auto decision = act.run(tick);
 
             std::this_thread::sleep_for(std::chrono::microseconds(30000));
             tick = (tick + 1) % data->timestamps.size();
