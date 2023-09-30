@@ -3,6 +3,8 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
+#include "glm/ext.hpp"
+#include "glm/gtx/string_cast.hpp"
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "stb/stb_image.h"
@@ -21,6 +23,7 @@
 #include <vector>
 
 #include "Data.h"
+#include "Actuator.h"
 
 class Display {
  private:
@@ -94,6 +97,8 @@ class Display {
         auto data = &Data::data();
         size_t tick = 0;
 
+        Actuator act;
+
         /// Render loop
         while (!glfwWindowShouldClose(window)) {
             int width{}, height{};
@@ -116,17 +121,24 @@ class Display {
             textureShader->setMat4("view", view);
 
             /** WORK FROM HERE **/
+            // make decision
+            auto decision = act.run(tick);
+
+            // render
             std::shared_ptr<Texture> texture{};
             glm::mat4 model{};
 
             texture = getTexture("ARROW");
             model = glm::rotate(glm::mat4(1.0f), float(data->yaws[tick]), glm::vec3(0.0f, 0.0f, 1.0f));
-            model = glm::scale(model, glm::vec3(data->speeds[tick] / 200, 1.0f, 0.0f));
+            model = glm::scale(model, glm::vec3(data->speeds[tick] / 200.0f, 1.0f, 0.0f));
             model = glm::translate(model, glm::vec3(rect_size, 0.0f, 0.0f));
             textureShader->use();
             textureShader->setMat4("model", model);
             texture->bind();
             rect->render();
+
+            auto angleVec1 = glm::vec4{1, 0, 0, 0};
+            angleVec1 = angleVec1 * model;
 
             texture = getTexture("CAR");
             model = glm::rotate(glm::mat4(1.0f), float(data->yaws[tick]), glm::vec3(0.0f, 0.0f, 1.0f));
@@ -151,13 +163,20 @@ class Display {
                 model = glm::rotate(model, float(-data->yaws[tick]), glm::vec3(0.0f, 0.0f, 1.0f));
                 model = glm::translate(model, glm::vec3(float(object.x) / 5000.0f, float(object.y) / 5000.0f, 0.0f));
                 model = glm::rotate(model, float(vel_dir), glm::vec3(0.0f, 0.0f, 1.0f));
-                model = glm::scale(model, glm::vec3(length/400, 1.0f, 0.0f));
-                model = glm::translate(model, glm::vec3(rect_size, 0.0f, 0.0f));
-
+                model = glm::scale(model, glm::vec3(float(length)/400.0f, 1.0f, 0.0f));
+                model = glm::translate(model, glm::vec3(float(rect_size), 0.0f, 0.0f));
                 textureShader->use();
                 textureShader->setMat4("model", model);
                 texture->bind();
                 rect->render();
+
+                std::cout << glm::to_string(model) << "\n";
+//                auto angleVec2 = glm::vec4{1, 0, 0, 0};
+//                angleVec2 = angleVec2 * model;
+//                std::cout << glm::to_string(angleVec2) << "\n";
+
+//                auto angle = acos(glm::dot(angleVec1, angleVec2) / (glm::length(angleVec1) * glm::length(angleVec2)));
+//                std::cout << angle << "\n";
 
                 model = glm::rotate(glm::mat4(1.0f), float(-data->yaws[tick]), glm::vec3(0.0f, 0.0f, 1.0f));
                 model = glm::translate(model, glm::vec3(float(object.x) / 5000.0f, float(object.y) / 5000.0f, 0.0f));

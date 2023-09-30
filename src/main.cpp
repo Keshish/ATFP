@@ -1,7 +1,8 @@
 #include <iostream>
 
-#include "Display/Display.h"
+#include "Actuator.h"
 #include "Data.h"
+#include "Display/Display.h"
 
 int main() {
     auto data = &Data::data();
