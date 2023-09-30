@@ -156,6 +156,9 @@ class Display {
                     continue;
 
                 double length = sqrt(pow(object.vel_x, 2) + pow(object.vel_y, 2));
+                if (length == 0) {
+                    continue;
+                }
                 double vel_dir = acos(object.vel_x / length);
 
                 texture = getTexture("ARROW");
@@ -171,6 +174,9 @@ class Display {
                 rect->render();
 
                 std::cout << glm::to_string(model) << "\n";
+                if (glm::isnan(model[0][0])) {
+                    exit(1);
+                }
 //                auto angleVec2 = glm::vec4{1, 0, 0, 0};
 //                angleVec2 = angleVec2 * model;
 //                std::cout << glm::to_string(angleVec2) << "\n";
@@ -187,7 +193,7 @@ class Display {
                 i++;
             }
 
-            std::this_thread::sleep_for(std::chrono::microseconds(20000));
+            std::this_thread::sleep_for(std::chrono::microseconds(100));
             tick = (tick + 1) % data->timestamps.size();
             /** UNTIL HERE **/
 
