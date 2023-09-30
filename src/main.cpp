@@ -1,13 +1,12 @@
 #include <iostream>
 
+#include "Actuator.h"
+#include "Data.h"
 #include "Display/Display.h"
 
-#include "opencv2/video/tracking.hpp"
-
-using namespace cv;
-
 int main() {
-    KalmanFilter KF(2, 1, 0);
+    auto data = &Data::data();
+    data->readCsv();
 
     auto display = &Display::display();
     display->run();

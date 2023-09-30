@@ -21,7 +21,11 @@ include_directories(
 )
 
 FILE(GLOB SRC_FILES src/*.cpp)
-add_executable(opengl_setup ${SRC_FILES})
+add_executable(opengl_setup ${SRC_FILES}
+        include/csv.h
+        include/Data.h
+        include/Object.h
+)
 target_link_libraries(opengl_setup PRIVATE
         ${OPENGL_LIBRARIES}
         ${OpenCV_LIBS}
