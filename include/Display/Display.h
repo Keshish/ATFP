@@ -48,6 +48,7 @@ class Display {
     glm::vec4 colorLightGray{0.3f, 0.3f, 0.3f, 1.0f};
     glm::vec4 colorWaterBlue{0.0f, 0.7f, 0.9f, 1.0f};
     glm::vec4 colorRed{1.0f, 0.0f, 0.0f, 1.0f};
+    glm::vec4 colorYellow{1.0f, 1.0f, 0.0f, 1.0f};
     glm::vec4 colorCyanBlue{rgbaToSingle(glm::vec4{56, 183, 190, 1})};
     std::vector<glm::vec4> objectColors{rgbaToSingle(glm::vec4{38, 70, 83, 1}),      // shit green
                                         rgbaToSingle(glm::vec4{244, 162, 97, 1}),    // orange
@@ -128,12 +129,25 @@ class Display {
             std::vector<std::vector<float>> mat{};
 
             if (tick > 0) {
-                yaw = yaw + data->yaws[tick-1] * (data->timestamps[tick] - data->timestamps[tick-1]);
+                yaw = yaw + data->yaws[tick - 1] * (data->timestamps[tick] - data->timestamps[tick - 1]);
             }
 
             // render
             std::shared_ptr<Texture> texture{};
             glm::mat4 model{};
+
+            model = glm::mat4(1.0f);
+            model = glm::scale(model, glm::vec3(1.0f, 2.0f, 0.0f));
+            for (int i = 0; i < 10; i++) {
+                model = glm::rotate(model,
+                                    float(data->yaws[tick - 1] * (data->timestamps[tick] - data->timestamps[tick - 1])),
+                                    glm::vec3(0.0f, 0.0f, 1.0f));
+                model = glm::translate(model, glm::vec3(rect_size, 0.0f, 0.0f));
+                colorShader->use();
+                colorShader->setVec4("customColor", colorYellow);
+                colorShader->setMat4("model", model);
+                rect->render();
+            }
 
             texture = getTexture("ARROW");
             model = glm::mat4(1.0f);
