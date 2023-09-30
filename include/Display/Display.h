@@ -97,7 +97,8 @@ class Display {
         std::lock_guard locker(mtx);
         init();
 
-        const double targetFrameTime = 1.0 / 60.0;  // Target frame rate (e.g., 60 FPS)
+        // Target frame rate (e.g., 60 FPS)
+        const double targetFrameTime = 1.0 / 60.0;
         double lastFrameTime = glfwGetTime();
 
         auto data = &Data::data();
